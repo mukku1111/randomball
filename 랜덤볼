@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모미지가리 가챠! (아이템 뽑기)</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+
+    <style>
+        html {
+            box-sizing: border-box;
+        }
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+
+        body {
+            font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
+            display: flex;
+            justify-content: center;
+            
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+            padding: 20px;
+            
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f4f7f6;
+            overflow-x: hidden;
+        }
+        
+        input, button, textarea {
+            font-family: inherit;
+        }
+
+        @media (min-width: 900px) {
+            body {
+                flex-direction: row;
+                align-items: flex-start;
+                gap: 80px;
+                padding-top: 50px;
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        h1 {
+            color: #FF5B91;
+            margin-bottom: 20px;
+            font-family: 'Jua', sans-serif;
+            font-size: 2.8em; 
+            font-weight: normal; 
+            text-align: center;
+        }
+
+        #result-text {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            height: auto;
+            min-height: 30px;
+            margin-bottom: 20px;
+            text-align: center;
+            transition: color 0.3s ease;
+        }
+
+        .wheel-container {
+            position: relative;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        #wheelCanvas {
+            border: 5px solid #fff;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            width: 100%;
+            height: auto;
+            max-width: 400px;
+        }
+
+        .wheel-pointer {
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 25px solid #d9534f;
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        .spin-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+            justify-content: center;
+        }
+        
+        #spin-btn {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: white;
+            background-color: #5cb85c;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 200px; 
+        }
+        #spin-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .sidebar {
+            width: 100%;
+            max-width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .controls-panel, .results-container {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            padding: 20px 25px;
+        }
+
+        .controls-panel h2, .results-container h2 {
+            margin-top: 0;
+            color: #555;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+            font-weight: bold; 
+        }
+
+        .controls-panel label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        #items-textarea {
+            width: 100%;
+            height: 150px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            resize: vertical;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        #update-btn, #copy-link-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        #update-btn { background-color: #f0ad4e; }
+        #update-btn:hover { background-color: #ec971f; }
+        #copy-link-btn { background-color: #0275d8; }
+        #copy-link-btn:hover { background-color: #025aa5; }
+
+        #results-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 5px;
+        }
+        #results-list li {
+            padding: 8px 12px;
+            font-size: 15px;
+            border-bottom: 1px solid #f4f4f4;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #333; 
+        }
+        #results-list li:first-child {
+            font-weight: bold;
+            color: #d9534f; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-content">
+        <h1>🍁 모미지가리 가챠!</h1>
+        
+        <p id="result-text">SPIN 버튼을 눌러주세요!</p>
+
+        <div class="wheel-container">
+            <div class="wheel-pointer"></div>
+            <canvas id="wheelCanvas" width="400" height="400"></canvas>
+        </div>
+        
+        <div class="spin-controls">
+            <button id="spin-btn">SPIN!</button>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        
+        <div class="controls-panel">
+            <h2>룰렛 편집</h2>
+            <label for="items-textarea">항목, 확률(가중치), 색상</label>
+            <textarea id="items-textarea"></textarea>
+            <div class="button-group">
+                <button id="update-btn">룰렛 적용하기</button>
+                <button id="copy-link-btn">공유 링크 복사</button>
+            </div>
+        </div>
+
+        <div class="results-container">
+            <h2>최근 결과</h2>
+            <ol id="results-list"></ol>
+        </div>
+        
+    </div>
+
+    <script>
+        // --- 1. 요소 가져오기 ---
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spin-btn');
+        const resultText = document.getElementById('result-text');
+        
+        const updateBtn = document.getElementById('update-btn');
+        const itemsTextarea = document.getElementById('items-textarea');
+        const resultsList = document.getElementById('results-list');
+        const copyLinkBtn = document.getElementById('copy-link-btn');
+        
+        // --- 2. 룰렛 설정 ---
+        let items = [];
+        let totalWeight = 0;
+        let recentResults = [];
+        
+        const PI = Math.PI;
+        const TAU = 2 * PI;
+        
+        const wheelRadius = canvas.width / 2; 
+        const centerX = wheelRadius;
+        const centerY = wheelRadius;
+        
+        let startAngle = 0;
+        let spinAngle = 0;
+        let spinVelocity = 0;
+        let isSpinning = false;
+        
+        // --- 3. 룰렛 그리기 함수 (drawWheel) ---
+        function drawWheel() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let currentAngle = 0;
+            if (totalWeight === 0) return;
+            for (const item of items) {
+                const sliceAngle = (item.weight / totalWeight) * TAU;
+                ctx.beginPath();
+                ctx.fillStyle = item.color;
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, wheelRadius, currentAngle, currentAngle + sliceAngle);
+                ctx.closePath();
+                ctx.fill();
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(currentAngle + sliceAngle / 2);
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#444";
+                ctx.font = "bold 16px 'Pretendard'";
+                ctx.fillText(item.name, wheelRadius * 0.65, 5);
+                ctx.restore();
+                currentAngle += sliceAngle;
+            }
+        }
+
+        // --- 4. 애니메이션 함수 (animate) ---
+        function animate() {
+            if (isSpinning) {
+                spinAngle += spinVelocity;
+                spinVelocity *= 0.99;
+                
+                if (spinVelocity < 0.01) {
+                    spinVelocity = 0;
+                    isSpinning = false;
+                    spinBtn.disabled = false;
+                    
+                    const winner = getWinner();
+
+                    if (winner) {
+                        const resultString = `${winner.name}을(를) 뽑았습니다!`;
+                        resultText.textContent = resultString;
+                        resultText.style.color = "#333"; 
+                        
+                        recentResults.unshift({ text: resultString });
+                        updateResultsDisplay();
+                    }
+                }
+            }
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(startAngle + spinAngle);
+            ctx.translate(-centerX, -centerY);
+            drawWheel();
+            ctx.restore();
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- 5. 당첨 항목 계산 함수 (getWinner) ---
+        function getWinner() {
+            if (totalWeight === 0) return null;
+            const finalAngle = (startAngle + spinAngle) % TAU;
+            const pointerAngle = TAU * 0.75;
+            let relativeAngle = (pointerAngle - finalAngle + TAU) % TAU;
+            for (const item of items) {
+                const sliceAngle = (item.weight / totalWeight) * TAU;
+                if (relativeAngle < sliceAngle) {
+                    return item;
+                }
+                relativeAngle -= sliceAngle;
+            }
+        }
+        
+        // --- 6. 룰렛 편집 적용 함수 ---
+        function updateWheelFromText(silent = false) {
+            if (isSpinning) {
+                if (!silent) alert("룰렛이 돌아가는 중에는 편집할 수 없습니다.");
+                return;
+            }
+            try {
+                const lines = itemsTextarea.value.trim().split('\n');
+                const newItems = [];
+                let newTotalWeight = 0;
+                
+                if (lines.length === 0 || (lines.length === 1 && lines[0] === '')) {
+                     throw new Error("항목을 1개 이상 입력해주세요.");
+                }
+                for (const line of lines) {
+                    const parts = line.split(',');
+                    if (parts.length !== 3) throw new Error(`형식 오류 (3개): "${line}"`);
+                    
+                    const name = parts[0].trim();
+                    const weight = parseInt(parts[1].trim());
+                    const color = parts[2].trim();
+
+                    if (!name || isNaN(weight) || weight <= 0 || !color.startsWith('#')) {
+                        throw new Error(`데이터 오류: "${line}"\n(이름, 가중치(숫자), #색상)`);
+                    }
+                    newItems.push({ name, weight, color });
+                    newTotalWeight += weight;
+                }
+                items = newItems;
+                totalWeight = newTotalWeight;
+                drawWheel();
+                if (!silent) alert("룰렛이 성공적으로 적용되었습니다!");
+            } catch (error) {
+                if (!silent) alert("입력 형식을 확인해주세요!\n\n" + error.message);
+            }
+        }
+        
+        // --- 7. 최근 결과 목록 HTML 업데이트 ---
+        function updateResultsDisplay() {
+            resultsList.innerHTML = '';
+            const resultsToShow = recentResults.slice(0, 10);
+            for (const result of resultsToShow) {
+                const li = document.createElement('li');
+                li.textContent = result.text;
+                resultsList.appendChild(li);
+            }
+        }
+
+        // --- 8. 공유 링크 복사 함수 ---
+        function copyShareLink() {
+            try {
+                const configText = itemsTextarea.value;
+                if (configText.trim() === '') {
+                    alert("먼저 룰렛 항목을 입력해주세요.");
+                    return;
+                }
+                const encodedConfig = btoa(encodeURIComponent(configText));
+                const baseURL = location.origin + location.pathname;
+                const shareURL = `${baseURL}?config=${encodedConfig}`;
+                
+                navigator.clipboard.writeText(shareURL).then(() => {
+                    alert("공유 링크가 클립보드에 복사되었습니다!");
+                });
+            } catch (e) {
+                alert("링크 생성에 실패했습니다: " + e.message);
+            }
+        }
+
+        // --- 9. URL에서 설정 불러오기 함수 ---
+        function loadConfigFromURL() {
+            const params = new URLSearchParams(location.search);
+            const config = params.get('config');
+            if (config) {
+                try {
+                    const decodedConfig = decodeURIComponent(atob(config));
+                    itemsTextarea.value = decodedConfig;
+                } catch (e) {
+                    initializeTextarea();
+                }
+            } else {
+                initializeTextarea();
+            }
+        }
+
+        // --- 10. 초기화 함수 ---
+        function initializeTextarea() {
+            if (itemsTextarea.value.trim() === '') {
+                // [수정됨] 모든 아이템의 가중치(weight)를 1로 통일하여 확률을 동일하게 설정
+                const defaultItems = [
+                    { name: "병우유", weight: 1, color: "#FDEEF5" },
+                    { name: "소세지", weight: 1, color: "#FDC9DA" },
+                    { name: "아이스크림", weight: 1, color: "#FFCFE2" },
+                    { name: "쪽지", weight: 1, color: "#E9EDF6" }
+                ];
+                const defaultText = defaultItems.map(item => `${item.name}, ${item.weight}, ${item.color}`).join('\n');
+                itemsTextarea.value = defaultText;
+            }
+        }
+
+        // --- 11. 이벤트 리스너 연결 ---
+        spinBtn.addEventListener('click', () => {
+            if (isSpinning) return;
+            
+            if (totalWeight === 0) {
+                 alert("룰렛 항목을 먼저 적용해주세요.");
+                 return;
+            }
+
+            isSpinning = true;
+            spinBtn.disabled = true;
+            resultText.textContent = "돌아가는 중...";
+            resultText.style.color = "#333"; 
+            spinVelocity = Math.random() * 0.25 + 0.4;
+        });
+        
+        updateBtn.addEventListener('click', () => updateWheelFromText(false));
+        copyLinkBtn.addEventListener('click', copyShareLink);
+        
+        // --- 12. 페이지 로드 시 실행 ---
+        loadConfigFromURL();
+        updateWheelFromText(true);
+        animate();
+    </script>
+</body>
+</html>
